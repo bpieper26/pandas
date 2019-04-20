@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
-from warnings import catch_warnings
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, MultiIndex, Panel, Index
 import pandas as pd
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 
 
 class TestDataFrameSubclassing(TestData):
@@ -126,29 +123,6 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-    def test_to_panel_expanddim(self):
-        # GH 9762
-
-        with catch_warnings(record=True):
-            class SubclassedFrame(DataFrame):
-
-                @property
-                def _constructor_expanddim(self):
-                    return SubclassedPanel
-
-            class SubclassedPanel(Panel):
-                pass
-
-            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-            result = df.to_panel()
-            assert isinstance(result, SubclassedPanel)
-            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                       items=['X', 'Y'], major_axis=[0],
-                                       minor_axis=[0, 1, 2],
-                                       dtype='int64')
-            tm.assert_panel_equal(result, expected)
-
     def test_subclass_attr_err_propagation(self):
         # GH 11808
         class A(DataFrame):
@@ -156,7 +130,7 @@ class TestDataFrameSubclassing(TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
+        with pytest.raises(AttributeError, match='.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):
@@ -235,10 +209,12 @@ class TestDataFrameSubclassing(TestData):
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
         tm.assert_sp_series_equal(ssdf.iloc[1],
                                   tm.SubclassedSparseSeries(rows[1]),
-                                  check_names=False)
+                                  check_names=False,
+                                  check_kind=False)
 
     def test_subclass_sparse_transpose(self):
         ossdf = tm.SubclassedSparseDataFrame([[1, 2, 3],
@@ -514,3 +490,59 @@ class TestDataFrameSubclassing(TestData):
         long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
 
         tm.assert_frame_equal(long_frame, expected)
+
+    def test_subclassed_apply(self):
+        # GH 19822
+
+        def check_row_subclass(row):
+            assert isinstance(row, tm.SubclassedSeries)
+
+        def strech(row):
+            if row["variable"] == "height":
+                row["value"] += 0.5
+            return row
+
+        df = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 5.5],
+            ['Mary', 'Bo', 'height', 6.0],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        df.apply(lambda x: check_row_subclass(x))
+        df.apply(lambda x: check_row_subclass(x), axis=1)
+
+        expected = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 6.0],
+            ['Mary', 'Bo', 'height', 6.5],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        result = df.apply(lambda x: strech(x), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedDataFrame([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedSeries([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        assert not isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_series_equal(result, expected)

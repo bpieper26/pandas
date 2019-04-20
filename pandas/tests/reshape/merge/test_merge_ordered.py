@@ -1,12 +1,12 @@
+from numpy import nan
+import pytest
+
 import pandas as pd
 from pandas import DataFrame, merge_ordered
-from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
-from numpy import nan
 
-
-class TestMergeOrdered(object):
+class TestMergeOrdered:
 
     def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],
@@ -76,16 +76,18 @@ class TestMergeOrdered(object):
             ([None, None], none_pat)
         ]
         for df_seq, pattern in test_cases:
-            tm.assert_raises_regex(ValueError, pattern, pd.concat, df_seq)
+            with pytest.raises(ValueError, match=pattern):
+                pd.concat(df_seq)
 
         pd.concat([pd.DataFrame()])
         pd.concat([None, pd.DataFrame()])
         pd.concat([pd.DataFrame(), None])
 
     def test_doc_example(self):
-        left = DataFrame({'key': ['a', 'c', 'e', 'a', 'c', 'e'],
+        left = DataFrame({'group': list('aaabbb'),
+                          'key': ['a', 'c', 'e', 'a', 'c', 'e'],
                           'lvalue': [1, 2, 3] * 2,
-                          'group': list('aaabbb')})
+                          })
 
         right = DataFrame({'key': ['b', 'c', 'd'],
                            'rvalue': [1, 2, 3]})

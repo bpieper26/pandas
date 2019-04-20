@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-import pytest
-from pandas.compat import range, lrange
 import numpy as np
-from pandas.compat import PY36
+import pytest
 
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas.compat import PY36, lrange
 
-from pandas.util.testing import assert_frame_equal
-
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
-
-from pandas.tests.frame.common import TestData
-
+from pandas.util.testing import assert_frame_equal
 
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns(TestData):
+class TestDataFrameMutateColumns():
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -95,7 +89,7 @@ class TestDataFrameMutateColumns(TestData):
     def test_assign_dependent_old_python(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 
-        # Key C does not exist at defition time of df
+        # Key C does not exist at definition time of df
         with pytest.raises(KeyError):
             df.assign(C=lambda df: df.A,
                       D=lambda df: df['A'] + df['C'])
@@ -126,7 +120,7 @@ class TestDataFrameMutateColumns(TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -134,7 +128,7 @@ class TestDataFrameMutateColumns(TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
@@ -178,9 +172,11 @@ class TestDataFrameMutateColumns(TestData):
         result = Series(dict(float32=2, float64=4, int32=1))
         assert (df.get_dtype_counts().sort_index() == result).all()
 
-        with tm.assert_raises_regex(ValueError, 'already exists'):
+        with pytest.raises(ValueError, match='already exists'):
             df.insert(1, 'a', df['b'])
-        pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
+        msg = "cannot insert c, already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.insert(1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
@@ -194,9 +190,9 @@ class TestDataFrameMutateColumns(TestData):
         exp = DataFrame(data={'X': ['x', 'y', 'z']}, index=['A', 'B', 'C'])
         assert_frame_equal(df, exp)
 
-    def test_delitem(self):
-        del self.frame['A']
-        assert 'A' not in self.frame
+    def test_delitem(self, float_frame):
+        del float_frame['A']
+        assert 'A' not in float_frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -224,16 +220,16 @@ class TestDataFrameMutateColumns(TestData):
         with pytest.raises(KeyError):
             del df['A']
 
-    def test_pop(self):
-        self.frame.columns.name = 'baz'
+    def test_pop(self, float_frame):
+        float_frame.columns.name = 'baz'
 
-        self.frame.pop('A')
-        assert 'A' not in self.frame
+        float_frame.pop('A')
+        assert 'A' not in float_frame
 
-        self.frame['foo'] = 'bar'
-        self.frame.pop('foo')
-        assert 'foo' not in self.frame
-        # TODO assert self.frame.columns.name == 'baz'
+        float_frame['foo'] = 'bar'
+        float_frame.pop('foo')
+        assert 'foo' not in float_frame
+        assert float_frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

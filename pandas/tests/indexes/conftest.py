@@ -1,10 +1,11 @@
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import lzip
+
+import pandas as pd
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas.compat import lzip, long
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[tm.makeUnicodeIndex(100),
@@ -14,6 +15,7 @@ from pandas.compat import lzip, long
                         tm.makeTimedeltaIndex(100),
                         tm.makeIntIndex(100),
                         tm.makeUIntIndex(100),
+                        tm.makeRangeIndex(100),
                         tm.makeFloatIndex(100),
                         Index([True, False]),
                         tm.makeCategoricalIndex(100),
@@ -37,7 +39,7 @@ zeros = [box([0] * 5, dtype=dtype)
          for dtype in [np.int64, np.uint64, np.float64]]
 zeros.extend([np.array(0, dtype=dtype)
               for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0, long(0)])
+zeros.extend([0, 0.0])
 
 
 @pytest.fixture(params=zeros)

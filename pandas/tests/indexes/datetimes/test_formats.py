@@ -1,17 +1,17 @@
 from datetime import datetime
-from pandas import DatetimeIndex, Series
 
-import numpy as np
 import dateutil.tz
-import pytz
+import numpy as np
 import pytest
+import pytz
 
-import pandas.util.testing as tm
 import pandas as pd
+from pandas import DatetimeIndex, Series
+import pandas.util.testing as tm
 
 
 def test_to_native_types():
-    index = DatetimeIndex(freq='1D', periods=3, start='2017-01-01')
+    index = pd.date_range(freq='1D', periods=3, start='2017-01-01')
 
     # First, with no arguments.
     expected = np.array(['2017-01-01', '2017-01-02',
@@ -51,7 +51,7 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
 
-class TestDatetimeIndexRendering(object):
+class TestDatetimeIndexRendering:
     def test_dti_repr_short(self):
         dr = pd.date_range(start='1/1/2012', periods=1)
         repr(dr)
@@ -182,7 +182,7 @@ class TestDatetimeIndexRendering(object):
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
                                  [exp1, exp2, exp3, exp4, exp5, exp6]):
-            result = idx.summary()
+            result = idx._summary()
             assert result == expected
 
     def test_dti_business_repr(self):
@@ -191,15 +191,15 @@ class TestDatetimeIndexRendering(object):
 
     def test_dti_business_summary(self):
         rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1))
-        rng.summary()
-        rng[2:2].summary()
+        rng._summary()
+        rng[2:2]._summary()
 
     def test_dti_business_summary_pytz(self):
-        pd.bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+        pd.bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc)._summary()
 
     def test_dti_business_summary_dateutil(self):
         pd.bdate_range('1/1/2005', '1/1/2009',
-                       tz=dateutil.tz.tzutc()).summary()
+                       tz=dateutil.tz.tzutc())._summary()
 
     def test_dti_custom_business_repr(self):
         # only really care that it works
@@ -209,12 +209,13 @@ class TestDatetimeIndexRendering(object):
     def test_dti_custom_business_summary(self):
         rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1),
                              freq='C')
-        rng.summary()
-        rng[2:2].summary()
+        rng._summary()
+        rng[2:2]._summary()
 
     def test_dti_custom_business_summary_pytz(self):
-        pd.bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
+        pd.bdate_range('1/1/2005', '1/1/2009', freq='C',
+                       tz=pytz.utc)._summary()
 
     def test_dti_custom_business_summary_dateutil(self):
         pd.bdate_range('1/1/2005', '1/1/2009', freq='C',
-                       tz=dateutil.tz.tzutc()).summary()
+                       tz=dateutil.tz.tzutc())._summary()

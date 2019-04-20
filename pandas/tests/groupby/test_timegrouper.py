@@ -1,21 +1,21 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
+from datetime import datetime
+from io import StringIO
+
+import numpy as np
+from numpy import nan
 import pytest
 import pytz
 
-from datetime import datetime
-import numpy as np
-from numpy import nan
-
 import pandas as pd
-from pandas import (DataFrame, date_range, Index,
-                    Series, MultiIndex, Timestamp, DatetimeIndex)
-from pandas.compat import StringIO
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas.core.groupby.ops import BinGrouper
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(object):
+class TestGroupBy:
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -42,8 +42,8 @@ class TestGroupBy(object):
 
             expected = DataFrame(
                 {'Quantity': 0},
-                index=date_range('20130901 13:00:00',
-                                 '20131205 13:00:00', freq='5D',
+                index=date_range('20130901',
+                                 '20131205', freq='5D',
                                  name='Date', closed='left'))
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype='int64')
 
@@ -57,11 +57,12 @@ class TestGroupBy(object):
             result3 = df.groupby(pd.Grouper(freq='5D')).sum()
             assert_frame_equal(result3, expected)
 
-    def test_groupby_with_timegrouper_methods(self):
+    @pytest.mark.parametrize("should_sort", [True, False])
+    def test_groupby_with_timegrouper_methods(self, should_sort):
         # GH 3881
         # make sure API of timegrouper conforms
 
-        df_original = pd.DataFrame({
+        df = pd.DataFrame({
             'Branch': 'A A A A A B'.split(),
             'Buyer': 'Carl Mark Carl Joe Joe Carl'.split(),
             'Quantity': [1, 3, 5, 8, 9, 3],
@@ -75,16 +76,17 @@ class TestGroupBy(object):
             ]
         })
 
-        df_sorted = df_original.sort_values(by='Quantity', ascending=False)
+        if should_sort:
+            df = df.sort_values(by='Quantity', ascending=False)
 
-        for df in [df_original, df_sorted]:
-            df = df.set_index('Date', drop=False)
-            g = df.groupby(pd.Grouper(freq='6M'))
-            assert g.group_keys
-            assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
-            groups = g.groups
-            assert isinstance(groups, dict)
-            assert len(groups) == 3
+        df = df.set_index('Date', drop=False)
+        g = df.groupby(pd.Grouper(freq='6M'))
+        assert g.group_keys
+
+        assert isinstance(g.grouper, BinGrouper)
+        groups = g.groups
+        assert isinstance(groups, dict)
+        assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
 
@@ -371,9 +373,9 @@ class TestGroupBy(object):
                             expected.reset_index(drop=True))
 
     def test_groupby_groups_datetimeindex(self):
-        # #1430
+        # GH#1430
         periods = 1000
-        ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+        ind = pd.date_range(start='2012/1/1', freq='5min', periods=periods)
         df = DataFrame({'high': np.arange(periods),
                         'low': np.arange(periods)}, index=ind)
         grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
@@ -382,7 +384,7 @@ class TestGroupBy(object):
         groups = grouped.groups
         assert isinstance(list(groups.keys())[0], datetime)
 
-        # GH 11442
+        # GH#11442
         index = pd.date_range('2015/01/01', periods=5, name='date')
         df = pd.DataFrame({'A': [5, 6, 7, 8, 9],
                            'B': [1, 2, 3, 4, 5]}, index=index)

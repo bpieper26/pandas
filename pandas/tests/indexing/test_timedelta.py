@@ -1,11 +1,11 @@
+import numpy as np
 import pytest
 
 import pandas as pd
 from pandas.util import testing as tm
-import numpy as np
 
 
-class TestTimedeltaIndexing(object):
+class TestTimedeltaIndexing:
     def test_boolean_indexing(self):
         # GH 14946
         df = pd.DataFrame({'x': range(10)})
@@ -68,3 +68,30 @@ class TestTimedeltaIndexing(object):
         series.iloc[0] = value
         expected = pd.Series([pd.NaT, 1, 2], dtype='timedelta64[ns]')
         tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize('start,stop, expected_slice', [
+        [np.timedelta64(0, 'ns'), None, slice(0, 11)],
+        [np.timedelta64(1, 'D'), np.timedelta64(6, 'D'), slice(1, 7)],
+        [None, np.timedelta64(4, 'D'), slice(0, 5)]])
+    def test_numpy_timedelta_scalar_indexing(self, start, stop,
+                                             expected_slice):
+        # GH 20393
+        s = pd.Series(range(11), pd.timedelta_range('0 days', '10 days'))
+        result = s.loc[slice(start, stop)]
+        expected = s.iloc[expected_slice]
+        tm.assert_series_equal(result, expected)
+
+    def test_roundtrip_thru_setitem(self):
+        # PR 23462
+        dt1 = pd.Timedelta(0)
+        dt2 = pd.Timedelta(28767471428571405)
+        df = pd.DataFrame({'dt': pd.Series([dt1, dt2])})
+        df_copy = df.copy()
+        s = pd.Series([dt1])
+
+        expected = df['dt'].iloc[1].value
+        df.loc[[True, False]] = s
+        result = df['dt'].iloc[1].value
+
+        assert expected == result
+        tm.assert_frame_equal(df, df_copy)

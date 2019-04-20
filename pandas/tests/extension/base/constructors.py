@@ -1,11 +1,26 @@
+import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
 
+from .base import BaseExtensionTests
 
-class BaseConstructorsTests(object):
+
+class BaseConstructorsTests(BaseExtensionTests):
+
+    def test_from_sequence_from_cls(self, data):
+        result = type(data)._from_sequence(data, dtype=data.dtype)
+        self.assert_extension_array_equal(result, data)
+
+        data = data[:0]
+        result = type(data)._from_sequence(data, dtype=data.dtype)
+        self.assert_extension_array_equal(result, data)
+
+    def test_array_from_scalars(self, data):
+        scalars = [data[0], data[1], data[2]]
+        result = data._from_sequence(scalars)
+        assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
@@ -34,10 +49,29 @@ class BaseConstructorsTests(object):
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    @pytest.mark.xfail(reason="GH-19342")
     def test_series_given_mismatched_index_raises(self, data):
-        msg = 'Wrong number of items passed 3, placement implies 4'
-        with tm.assert_raises_regex(ValueError, None) as m:
+        msg = 'Length of passed values is 3, index implies 5'
+        with pytest.raises(ValueError, match=msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
 
-        assert m.match(msg)
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        dtype = data.dtype
+
+        expected = pd.Series(data)
+        result = pd.Series(list(data), dtype=dtype)
+        self.assert_series_equal(result, expected)
+
+        result = pd.Series(list(data), dtype=str(dtype))
+        self.assert_series_equal(result, expected)
+
+    def test_pandas_array(self, data):
+        # pd.array(extension_array) should be idempotent...
+        result = pd.array(data)
+        self.assert_extension_array_equal(result, data)
+
+    def test_pandas_array_dtype(self, data):
+        # ... but specifying dtype will override idempotency
+        result = pd.array(data, dtype=np.dtype(object))
+        expected = pd.arrays.PandasArray(np.asarray(data, dtype=object))
+        self.assert_equal(result, expected)

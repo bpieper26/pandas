@@ -23,6 +23,11 @@
 .cache/
 .vscode/
 
+BP_*.py
+bp_*.py
+.gitignore
+Untitled.ipynb
+
 # Compiled source #
 ###################
 *.a

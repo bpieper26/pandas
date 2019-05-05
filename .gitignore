@@ -23,10 +23,15 @@
 .cache/
 .vscode/
 
-BP_*.py
-bp_*.py
+
+###### bpieper26 additions - DO NOT PUSH UPSTREAM #############################
+BP_*.*
+bp_*.*
+
 .gitignore
 Untitled.ipynb
+###### bpieper26 additions - DO NOT PUSH UPSTREAM #############################
+
 
 # Compiled source #
 ###################

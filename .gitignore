@@ -27,7 +27,7 @@
 ###### bpieper26 additions - DO NOT PUSH UPSTREAM #############################
 BP_*.*
 bp_*.*
-
+*.patch
 .gitignore
 Untitled.ipynb
 ###### bpieper26 additions - DO NOT PUSH UPSTREAM #############################

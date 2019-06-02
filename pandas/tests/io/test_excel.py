@@ -1828,18 +1828,20 @@ class TestExcelWriter(_WriterBase):
     #         assert ws.cell(maddr).merged
     #     os.remove(filename)
 
+    @pytest.mark.parametrize("include_column_name", [True, False])
     @pytest.mark.parametrize("use_headers", [True, False])
     @pytest.mark.parametrize("r_idx_nlevels", [1, 2, 3])
     @pytest.mark.parametrize("c_idx_nlevels", [1, 2, 3])
     def test_excel_010_hemstring(self, merge_cells, engine, ext,
-                                 c_idx_nlevels, r_idx_nlevels, use_headers):
+                                 c_idx_nlevels, r_idx_nlevels, use_headers, include_column_name):
 
         def roundtrip(data, header=True, parser_hdr=0, index=True):
             data.to_excel(self.path, header=header,
                           merge_cells=merge_cells, index=index)
 
             xf = ExcelFile(self.path)
-            return read_excel(xf, xf.sheet_names[0], header=parser_hdr)
+            newdf= read_excel(xf, xf.sheet_names[0], header=parser_hdr)
+            return newdf
 
         # Basic test.
         parser_header = 0 if use_headers else None
@@ -1858,7 +1860,11 @@ class TestExcelWriter(_WriterBase):
 
         df = mkdf(nrows, ncols, r_idx_nlevels=r_idx_nlevels,
                   c_idx_nlevels=c_idx_nlevels)
-
+        print(df)
+        if not include_column_name:
+            df.columns.set_names(None, inplace=True)
+        else:
+            print()
         # This if will be removed once multi-column Excel writing
         # is implemented. For now fixing gh-9794.
         if c_idx_nlevels > 1:
@@ -1868,6 +1874,7 @@ class TestExcelWriter(_WriterBase):
             res = roundtrip(df, use_headers)
 
             if use_headers:
+                print(res.shape, (nrows, ncols + r_idx_nlevels))
                 assert res.shape == (nrows, ncols + r_idx_nlevels)
             else:
                 # First row taken as columns.
